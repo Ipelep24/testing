@@ -1,5 +1,4 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChevronDown } from 'lucide-react'
 import React from 'react'
 
 const RecordsSkeleton = () => {

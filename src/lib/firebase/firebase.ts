@@ -8,13 +8,14 @@ import { Firestore, getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAbEjRIIhmmhO2AYguwj7vVjRVvhdt2uic",
-    authDomain: "virtu-sense.firebaseapp.com",
-    projectId: "virtu-sense",
-    storageBucket: "virtu-sense.firebasestorage.app",
-    messagingSenderId: "856807042524",
-    appId: "1:856807042524:web:eba3eaef8526a028b5f319"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
+
 
 // Initialize Firebase
 const currentApps = getApps();

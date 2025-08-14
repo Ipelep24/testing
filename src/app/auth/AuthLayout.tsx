@@ -36,7 +36,7 @@ export default function AuthLayout({ mode, setMode }: Props) {
                             </div>
                             <LoginForm mode={mode} />
                             <h6 className='text-xs truncate'>
-                                Don't have an account?{' '}
+                                Don&apos;t have an account?{' '}
                                 <span className='text-[#1281E9] cursor-pointer' onClick={() => setMode('signup')}>
                                     Sign Up
                                 </span>
