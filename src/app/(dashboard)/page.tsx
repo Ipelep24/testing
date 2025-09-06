@@ -3,12 +3,13 @@ import Time from '../components/Time'
 import NewMeeting from '../components/NewMeeting'
 import MeetingCode from '../components/MeetingCode'
 import Image from 'next/image'
+import ToastOnLoad from './ToastOnLoad'
 
 export default async function Dashboard() {
   //await new Promise(resolve => setTimeout(resolve, 100000))
 
   return (
-    <div className='h-screen font-futura'>
+    <div className='h-screen font-futura p'>
       <header className='w-full h-1/8'>
         <svg
           className="w-full h-full rotate-180"
@@ -22,7 +23,8 @@ export default async function Dashboard() {
           />
         </svg>
       </header>
-      <main className='w-full h-6/8 px-4'>
+      <main className='w-full h-6/8 px-7'>
+      <ToastOnLoad />
         <div className='w-full h-full flex'>
           <div className='w-full lg:w-1/2 h-full'>
             <div className='h-1/6'>

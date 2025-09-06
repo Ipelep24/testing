@@ -1,18 +1,18 @@
 // utils/validators.ts
 
 export const isValidName = (name: string, minLength: number = 3) => {
-  const noLeadingOrTrailing = name === name.trim()
-  const trimmed = name.trim()
-  const noExtraSpaces = !/\s{2,}/.test(trimmed)
+  const noLeadingOrTrailing = name === name.trim();
+  const trimmed = name.trim();
+  const noExtraSpaces = !/\s{2,}/.test(trimmed);
 
   return (
     trimmed !== "" &&
-    /^[A-Za-z\s]+$/.test(trimmed) &&
+    /^[\p{L}\s]+$/u.test(trimmed) &&
     trimmed.length >= minLength &&
     noLeadingOrTrailing &&
     noExtraSpaces
-  )
-}
+  );
+};
 
 export const isValidEmail = (email: string) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}$/

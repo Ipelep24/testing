@@ -21,7 +21,7 @@ const PasswordInput = ({
     touched,
     error,
     errorMessage,
-    autoComplete = 'new-password',
+    autoComplete
 }: PasswordInputProps) => {
     const [showPassword, setShowPassword] = useState(false)
 

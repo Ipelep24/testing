@@ -4,6 +4,9 @@ import React, { useState, useEffect, use } from 'react'
 import TextInput from './TextInput'
 import PasswordInput from './PasswordInput'
 import { isPasswordMatch, isValidEmail, isValidName, isValidPassword } from '../validators'
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth'
+import { auth } from '@/lib/firebase/firebase'
+import toast from 'react-hot-toast'
 
 interface Props {
   mode: 'signin' | 'signup'
@@ -27,9 +30,13 @@ const SignupForm = ({ mode }: Props) => {
   const [confirmError, setConfirmError] = useState<boolean>(false)
   const [confirmTouched, setConfirmTouched] = useState<boolean>(false)
   const [termsShake, setTermsShake] = useState<boolean>(false)
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (loading) return
+    setLoading(true)
 
     const isFirstValid = isValidName(firstName, 3)
     const isLastValid = isValidName(lastName, 4)
@@ -57,47 +64,50 @@ const SignupForm = ({ mode }: Props) => {
       setConfirmError(!isConfirmValid)
     })
 
-    if (
-      !isFirstValid ||
-      !isLastValid ||
-      !isEmailValid ||
-      !isPasswordValid ||
-      !isConfirmValid
-    ) return
+    if (!isFirstValid || !isLastValid || !isEmailValid || !isPasswordValid || !isConfirmValid) {
+      setLoading(false)
+      return
+    }
 
-    if (
-      isFirstValid &&
-      isLastValid &&
-      isEmailValid &&
-      isPasswordValid &&
-      isConfirmValid &&
-      !acceptTerms
-    ) {
+    if (!acceptTerms) {
       setTermsShake(true)
-      setTimeout(() => setTermsShake(false), 500) // Reset shake after animation
+      setTimeout(() => setTermsShake(false), 500)
+      setLoading(false)
       return
     }
 
     const fullName = `${firstName.trim()} ${lastName.trim()}`
-    console.log(fullName)
-    console.log("Form submitted!")
+    try {
+      await toast.promise(
+        (async () => {
+          const { user } = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword)
+          await updateProfile(user, {
+            displayName: fullName,
+            photoURL: ""
+          })
 
-    setFirstName("")
-    setLastName("")
-    setSignupEmail("")
-    setSignupPassword("")
-    setConfirmPassword("")
-    setAcceptTerms(false)
-    setFirstNameTouched(false)
-    setLastNameTouched(false)
-    setFirstNameError(false)
-    setLastNameError(false)
-    setEmailTouched(false)
-    setEmailError(false)
-    setPasswordTouched(false)
-    setConfirmTouched(false)
-    setPasswordError(false)
-    setConfirmError(false)
+          await sendEmailVerification(user)
+
+          toast.success("Verification email sent! Please check your inbox.")
+
+          localStorage.setItem('welcomeToast', 'Account created successfully!') // ✅ defer toast
+          setTimeout(() => {
+            window.location.reload()
+          }, 1500)
+        })(),
+        {
+          loading: "Creating your account...",
+          error: (err) => {
+            if (err.code === 'auth/email-already-in-use') {
+              return "This email is already in use."
+            }
+            return "Signup failed: " + err.message
+          },
+        }
+      )
+    } catch {
+      setLoading(false)
+    }
   }
 
 
@@ -136,7 +146,7 @@ const SignupForm = ({ mode }: Props) => {
             touched={firstNameTouched}
             error={firstNameError}
             errorMessage="Invalid First Name"
-            autoComplete="name"
+            autoComplete="given-name"
           />
           <TextInput
             label="Last Name"
@@ -146,7 +156,7 @@ const SignupForm = ({ mode }: Props) => {
             touched={lastNameTouched}
             error={lastNameError}
             errorMessage="Invalid Last Name"
-            autoComplete="name"
+            autoComplete="family-name"
           />
         </div>
         <TextInput
@@ -157,7 +167,7 @@ const SignupForm = ({ mode }: Props) => {
           touched={emailTouched}
           error={emailError}
           errorMessage="Enter a valid Email Address"
-          autoComplete="name"
+          autoComplete="email"
         />
         <PasswordInput
           label="Password"
@@ -167,6 +177,7 @@ const SignupForm = ({ mode }: Props) => {
           touched={passwordTouched}
           error={passwordError}
           errorMessage="Password must be at least 8"
+          autoComplete='new-password'
         />
         <PasswordInput
           label="Confirm Password"
@@ -176,6 +187,7 @@ const SignupForm = ({ mode }: Props) => {
           touched={confirmTouched}
           error={confirmError}
           errorMessage="Password Mismatch"
+          autoComplete='new-password'
         />
 
         <div className={`flex w-full my-2 ${termsShake ? 'animate-shake' : ''}`}>
@@ -193,6 +205,7 @@ const SignupForm = ({ mode }: Props) => {
           type='submit'
           value="Sign Up"
           name='signupSubmit'
+          disabled={loading}
           className='text-white font-semibold bg-[#384959] w-1/2 my-5 p-1 rounded-2xl cursor-pointer'
         />
       </form>

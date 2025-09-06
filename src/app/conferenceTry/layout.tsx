@@ -1,10 +1,8 @@
 import { ReactNode } from 'react'
-import { Toaster } from 'react-hot-toast'
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex justify-center items-center h-screen w-screen">
-      <Toaster position="top-center" reverseOrder={false} />
       {children}
     </div>
   )

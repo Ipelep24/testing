@@ -6,8 +6,7 @@ const VideoChat = dynamic(() => import('./components/VideoChat'), { ssr: false }
 
 const Conference = () => {
   return (
-    <main className="p-8">
-      <h1>Agora Video Test</h1>
+    <main className='h-screen w-full'>
       <VideoChat />
     </main>
   )

@@ -26,7 +26,7 @@ const RecordsLayout = () => {
     }
   }
 
-  const currentUser = 'Linory'
+  const currentUser = 'Kenneth'
 
   const sessions = [
     {
