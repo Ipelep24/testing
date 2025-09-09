@@ -1,4 +1,4 @@
-import ToastOnLoad from '../(dashboard)/ToastOnLoad'
+import ToastOnLoad from '../ToastOnLoad'
 import AuthClient from './AuthClient'
 
 const Auth = () => {

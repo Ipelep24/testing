@@ -3,7 +3,7 @@ import Time from '../components/Time'
 import NewMeeting from '../components/NewMeeting'
 import MeetingCode from '../components/MeetingCode'
 import Image from 'next/image'
-import ToastOnLoad from './ToastOnLoad'
+import ToastOnLoad from '../ToastOnLoad'
 
 export default async function Dashboard() {
   //await new Promise(resolve => setTimeout(resolve, 100000))

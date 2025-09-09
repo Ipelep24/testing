@@ -3,6 +3,7 @@ import { Eye, EyeClosed } from 'lucide-react'
 import React, { useState } from 'react'
 
 interface PasswordInputProps {
+    id?: string
     label: string
     name: string
     value: string
@@ -14,6 +15,7 @@ interface PasswordInputProps {
 }
 
 const PasswordInput = ({
+    id,
     label,
     name,
     value,
@@ -30,11 +32,13 @@ const PasswordInput = ({
             <label htmlFor={name} className='text-sm'>{label}</label>
             <div className='relative'>
                 <input
+                    suppressHydrationWarning
+                    id={name}
                     className={`border p-1 rounded-sm text-sm w-full pr-10 focus:outline-2 ${touched
-                            ? error
-                                ? 'border-red-500 outline-red-500 text-red-500 animate-shake'
-                                : 'border-green-500 outline-green-500 text-green-600'
-                            : 'border-black outline-[#384959] text-black'
+                        ? error
+                            ? 'border-red-500 outline-red-500 text-red-500 animate-shake'
+                            : 'border-green-500 outline-green-500 text-green-600'
+                        : 'border-black outline-[#384959] text-black'
                         }`}
                     type={showPassword ? 'text' : 'password'}
                     name={name}
@@ -43,6 +47,7 @@ const PasswordInput = ({
                     autoComplete={autoComplete}
                 />
                 <button
+                suppressHydrationWarning
                     type="button"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     onClick={() => setShowPassword(prev => !prev)}

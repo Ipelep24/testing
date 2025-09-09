@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ViewportFixer from "../lib/ViewportFixer";
-import { AuthProvider } from "@/app/AuthContext";
+import { AuthProvider } from "@/app/context/AuthContext";
+import { UIProvider } from "./context/UIContext";
 
 export const metadata: Metadata = {
   title: "VirtuSense",
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body>
         <ViewportFixer />
         <AuthProvider>
-          {children}
+          <UIProvider>
+            {children}
+          </UIProvider>
         </AuthProvider>
       </body>
     </html>

@@ -5,8 +5,9 @@ import TextInput from './TextInput'
 import PasswordInput from './PasswordInput'
 import { isPasswordMatch, isValidEmail, isValidName, isValidPassword } from '../validators'
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth'
-import { auth } from '@/lib/firebase/firebase'
+import { auth, db } from '@/lib/firebase/firebase'
 import toast from 'react-hot-toast'
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
 
 interface Props {
   mode: 'signin' | 'signup'
@@ -32,6 +33,12 @@ const SignupForm = ({ mode }: Props) => {
   const [termsShake, setTermsShake] = useState<boolean>(false)
   const [loading, setLoading] = useState(false);
 
+  const capitalizeName = (name: string) =>
+    name
+      .trim()
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -76,7 +83,7 @@ const SignupForm = ({ mode }: Props) => {
       return
     }
 
-    const fullName = `${firstName.trim()} ${lastName.trim()}`
+    const fullName = `${capitalizeName(firstName)} ${capitalizeName(lastName)}`
     try {
       await toast.promise(
         (async () => {
@@ -86,6 +93,13 @@ const SignupForm = ({ mode }: Props) => {
             photoURL: ""
           })
 
+          await setDoc(doc(db, 'users', user.uid), {
+            fullName,
+            email: user.email,
+            createdAt: serverTimestamp()
+          })
+
+
           await sendEmailVerification(user)
 
           toast.success("Verification email sent! Please check your inbox.")
@@ -93,7 +107,7 @@ const SignupForm = ({ mode }: Props) => {
           localStorage.setItem('welcomeToast', 'Account created successfully!') // ✅ defer toast
           setTimeout(() => {
             window.location.reload()
-          }, 1500)
+          }, 2000)
         })(),
         {
           loading: "Creating your account...",
@@ -193,6 +207,7 @@ const SignupForm = ({ mode }: Props) => {
         <div className={`flex w-full my-2 ${termsShake ? 'animate-shake' : ''}`}>
           <label className='truncate text-xs flex leading-none gap-1 text-[#64717E] cursor-pointer'>
             <input
+              suppressHydrationWarning
               type="checkbox"
               name="acceptTerms"
               checked={acceptTerms}
@@ -202,6 +217,7 @@ const SignupForm = ({ mode }: Props) => {
           </label>
         </div>
         <input
+          suppressHydrationWarning
           type='submit'
           value="Sign Up"
           name='signupSubmit'

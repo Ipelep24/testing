@@ -7,6 +7,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '@/lib/firebase/firebase'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
+import { isValidEmail, isValidPassword } from '../validators'
 
 interface Props {
   mode: 'signin' | 'signup'
@@ -34,8 +35,8 @@ const LoginForm = ({ mode }: Props) => {
     setEmailError(false)
     setPasswordError(false)
 
-    const isEmailValid = loginEmail.trim() !== ""
-    const isPasswordValid = loginPassword.length >= 8
+    const isEmailValid = isValidEmail(loginEmail)
+    const isPasswordValid = isValidPassword(loginPassword)
 
     requestAnimationFrame(() => {
       setEmailError(!isEmailValid)
@@ -63,15 +64,45 @@ const LoginForm = ({ mode }: Props) => {
           })
 
           const welcomeMessage = `Welcome, ${user.displayName || 'User'}!`
+
+          if (rememberMe) {
+            localStorage.setItem('rememberMe', 'true')
+            localStorage.setItem('lastLoginEmail', loginEmail)
+          } else {
+            const savedEmail = localStorage.getItem('lastLoginEmail')
+            if (savedEmail === loginEmail) {
+              localStorage.removeItem('rememberMe')
+              localStorage.removeItem('lastLoginEmail')
+            }
+          }
+
           localStorage.setItem('welcomeToast', welcomeMessage)
           router.push('/')
         })(),
         {
-          loading: "Signing you in...",
-          error: (err: any) =>
-            err.message === "unverified"
-              ? "Please verify your email first."
-              : "Login failed: " + err.message,
+          loading: "Signing in...",
+          error: (err: any) => {
+            if (err.message === "unverified") {
+              return "Almost there! Please verify your email first—check your inbox for the link we sent you."
+            }
+
+            switch (err.code) {
+              case "auth/invalid-credential":
+                return "Hmm, that didn't work. Double-check your email and password—CAPS LOCK might be sneaking in."
+              case "auth/too-many-requests":
+                return "Too many request. Please try again later."
+              default:
+                return "Login failed: " + err.message
+            }
+          },
+        },
+        {
+          loading: {
+            duration: Infinity,
+          },
+          error: {
+            duration: 3000,
+          }
         }
       )
     } catch {
@@ -83,9 +114,12 @@ const LoginForm = ({ mode }: Props) => {
 
   useEffect(() => {
     if (mode === 'signin') {
-      setLoginEmail("")
+      const savedEmail = localStorage.getItem('lastLoginEmail')
+      const savedRemember = localStorage.getItem('rememberMe') === 'true'
+
+      setLoginEmail(savedEmail || "")
       setLoginPassword("")
-      setRememberMe(false)
+      setRememberMe(savedRemember)
       setEmailTouched(false)
       setPasswordTouched(false)
       setEmailError(false)
@@ -94,7 +128,7 @@ const LoginForm = ({ mode }: Props) => {
   }, [mode])
 
   return (
-    <div className='w-3/5 mt-5'>
+    <div className='w-3/5'>
       <form className='flex flex-col items-center' onSubmit={handleSubmit}>
         <TextInput
           label="Email"
@@ -130,6 +164,7 @@ const LoginForm = ({ mode }: Props) => {
         </div>
 
         <input
+          suppressHydrationWarning
           type='submit'
           value="Sign In"
           name='loginSubmit'

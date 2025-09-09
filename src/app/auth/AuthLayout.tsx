@@ -4,10 +4,10 @@ import Image from 'next/image'
 import SignupForm from './components/SignupForm'
 import LoginForm from './components/LoginForm'
 import { useRouter } from 'next/navigation'
-import { fetchSignInMethodsForEmail, GoogleAuthProvider, linkWithPopup, signInWithPopup } from 'firebase/auth'
-import { auth } from '@/lib/firebase/firebase'
+import { fetchSignInMethodsForEmail, GoogleAuthProvider, signInWithPopup, updateProfile } from 'firebase/auth'
+import { auth, db } from '@/lib/firebase/firebase'
 import { useState } from 'react'
-import toast from 'react-hot-toast'
+import { deleteDoc, doc, getDoc } from 'firebase/firestore'
 
 interface Props {
     mode: 'signin' | 'signup'
@@ -16,48 +16,52 @@ interface Props {
 
 export default function AuthLayout({ mode, setMode }: Props) {
     const router = useRouter()
-    const [googleLoading, setGoogleLoading] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     const handleGoogleSignIn = async () => {
-        if (googleLoading) return
-        setGoogleLoading(true)
+        if (loading) return
+        setLoading(true)
 
         try {
             const provider = new GoogleAuthProvider()
             const result = await signInWithPopup(auth, provider)
-            const credential = GoogleAuthProvider.credentialFromResult(result)
-            const email = result.user.email
+            const user = result.user
+            const userDoc = await getDoc(doc(db, 'users', user.uid))
+            if (userDoc.exists()) {
+                const { fullName } = userDoc.data();
+                const needsUpdate = fullName && user.displayName !== fullName;
 
-            if (!email || !credential) throw new Error('Google sign-in failed to return email or credential.')
+                if (needsUpdate) {
+                    await updateProfile(user, { displayName: fullName });
 
-            const methods = await fetchSignInMethodsForEmail(auth, email)
+                    const linkedProviders = user.providerData.map(p => p.providerId);
+                    const isLinked = linkedProviders.includes('google.com') && linkedProviders.length > 1;
 
-            if (methods.includes('password') && !methods.includes('google.com')) {
-                // 🚫 Prevent Google sign-in to avoid collision
-                toast.error('This email is already registered with a password. Please sign in using email/password.')
-                await auth.signOut()
-                return
+                    if (isLinked || user.displayName === fullName) {
+                        await deleteDoc(doc(db, 'users', user.uid));
+                    }
+                }
             }
 
-            // ✅ Safe to proceed with Google sign-in
-            const idToken = await result.user.getIdToken()
+            const idToken = await user.getIdToken()
             await fetch('/api/setSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: idToken }),
             })
 
-            toast.success(`Welcome, ${result.user.displayName || 'User'}!`)
+            localStorage.setItem('welcomeToast', `Welcome, ${user.displayName || 'User'}!`)
             router.push('/')
-        } catch (err: any) {
-            if (err.code === 'auth/popup-closed-by-user') {
-                console.warn('Google sign-in popup was closed by the user.')
-            } else {
-                console.error('Google sign-in error:', err)
-                toast.error('Google sign-in failed')
+        } catch (error: any) {
+            console.error("Google sign-in error:", error)
+
+            if (error.code === 'auth/account-exists-with-different-credential') {
+                console.warn("Account exists with different credential:", error.email)
+                const methods = await fetchSignInMethodsForEmail(auth, error.email)
+                console.log("Existing sign-in methods for this email:", methods)
             }
         } finally {
-            setGoogleLoading(false)
+            setLoading(false)
         }
     }
 
@@ -72,10 +76,25 @@ export default function AuthLayout({ mode, setMode }: Props) {
                 {/* Sign In */}
                 <div className={`absolute inset-0 flex transition-all duration-500 ease-in-out
           ${mode === 'signin' ? 'translate-y-0 opacity-100 z-10' : 'translate-y-full opacity-0 z-0 pointer-events-none'}`}>
-                    <div className='relative w-full h-full lg:w-1/2'>
-                        <div className='flex flex-col items-center mt-20'>
-                            <h1 className='text-3xl font-bold m-2 text-[#64717E]'>Sign In</h1>
-                            <LoginForm mode={mode}/>
+                    <div className='relative w-full h-full lg:w-1/2 flex items-center justify-center'>
+                        <div className='flex flex-col items-center w-full'>
+                            <h1 className='text-3xl font-bold text-[#64717E]'>Sign In</h1>
+                            <button
+                                suppressHydrationWarning
+                                type="button"
+                                onClick={handleGoogleSignIn}
+                                disabled={loading}
+                                className="flex items-center justify-center gap-5 font-semibold outline-2 outline-[#384959] w-fit my-5 py-1 px-2 rounded-2xl cursor-pointer"
+                            >
+                                <Image src="/google.png" alt="google" width={20} height={20} />
+                                Continue with Google
+                            </button>
+                            <div className='flex items-center justify-center gap-2 w-3/5'>
+                                <span className='w-full h-0 border border-[#64717E]'></span>
+                                <span className='text-[#64717E] font-light'>OR</span>
+                                <span className='w-full h-0 border border-[#64717E]'></span>
+                            </div>
+                            <LoginForm mode={mode} />
                             <h6 className='text-xs truncate'>
                                 Don&apos;t have an account?{' '}
                                 <span className='text-[#1281E9] cursor-pointer' onClick={() => setMode('signup')}>
@@ -97,8 +116,8 @@ export default function AuthLayout({ mode, setMode }: Props) {
                         <Image src="/left.png" alt="Image" fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className='object-cover' />
                     </div>
-                    <div className='relative w-full h-full lg:w-1/2'>
-                        <div className='flex flex-col items-center mt-2'>
+                    <div className='relative w-full h-full lg:w-1/2 flex items-center justify-center'>
+                        <div className='flex flex-col items-center w-full'>
                             <h1 className='text-3xl font-bold m-2 text-[#64717E]'>Sign Up</h1>
                             <SignupForm mode={mode} />
                             <h6 className='text-xs truncate'>

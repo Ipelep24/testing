@@ -2,6 +2,7 @@
 import React from 'react'
 
 interface TextInputProps {
+  id?: string
   label: string
   name: string
   value: string
@@ -14,6 +15,7 @@ interface TextInputProps {
 }
 
 const TextInput = ({
+  id,
   label,
   name,
   value,
@@ -28,13 +30,14 @@ const TextInput = ({
     <div className='flex flex-col text-[#64717E] w-full my-2 relative'>
       <label htmlFor={name} className='text-sm'>{label}</label>
       <input
-        className={`border p-1 rounded-sm text-sm w-full focus:outline-2 ${
-          touched
+        suppressHydrationWarning
+        id={name}
+        className={`border p-1 rounded-sm text-sm w-full focus:outline-2 ${touched
             ? error
               ? 'border-red-500 outline-red-500 text-red-500 animate-shake'
               : 'border-green-500 outline-green-500 text-green-600'
             : 'border-black outline-[#384959] text-black'
-        }`}
+          }`}
         type={type}
         name={name}
         value={value}
