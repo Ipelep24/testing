@@ -4,7 +4,6 @@ import { auth } from '@/lib/firebase/firebase'
 import { signOut } from 'firebase/auth'
 import { ChevronsUpDown } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import React, { useState, useRef, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -15,7 +14,6 @@ const SidebarFooter = () => {
   const [openProfile, setOpenProfile] = useState(false)
   const triggerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const router = useRouter()
   const { user, loading, setSkipNextAuthChange } = useAuth()
   const { setShowSettings } = useUI()
 

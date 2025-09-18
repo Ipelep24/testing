@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect } from 'react'
 import TextInput from './TextInput'
 import PasswordInput from './PasswordInput'
 import { isPasswordMatch, isValidEmail, isValidName, isValidPassword } from '../validators'

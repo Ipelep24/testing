@@ -15,7 +15,6 @@ interface PasswordInputProps {
 }
 
 const PasswordInput = ({
-    id,
     label,
     name,
     value,

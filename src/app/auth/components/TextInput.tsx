@@ -15,7 +15,6 @@ interface TextInputProps {
 }
 
 const TextInput = ({
-  id,
   label,
   name,
   value,

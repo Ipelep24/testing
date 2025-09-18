@@ -81,7 +81,7 @@ const LoginForm = ({ mode }: Props) => {
         })(),
         {
           loading: "Signing in...",
-          error: (err: any) => {
+          error: (err) => {
             if (err.message === "unverified") {
               return "Almost there! Please verify your email first—check your inbox for the link we sent you."
             }

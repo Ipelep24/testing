@@ -33,11 +33,11 @@ export async function middleware(req: NextRequest) {
         const firebaseToken = payload.sub as string
 
         // ✅ Verify the Firebase token
-        const decodedToken = await getAuth(app).verifyIdToken(firebaseToken)
+        const _decodedToken = await getAuth(app).verifyIdToken(firebaseToken)
 
         // Optionally attach user info to request here
         return NextResponse.next()
-    } catch (err) {
+    } catch (_err) {
         if (isProtected) {
             return NextResponse.redirect(new URL('/auth', req.url))
         }
