@@ -8,6 +8,7 @@ import { fetchSignInMethodsForEmail, GoogleAuthProvider, signInWithPopup, update
 import { auth, db } from '@/lib/firebase/firebase'
 import { useState } from 'react'
 import { deleteDoc, doc, getDoc } from 'firebase/firestore'
+import toast from 'react-hot-toast'
 
 interface Props {
     mode: 'signin' | 'signup'
@@ -27,38 +28,41 @@ export default function AuthLayout({ mode, setMode }: Props) {
             const result = await signInWithPopup(auth, provider)
             const user = result.user
             const userDoc = await getDoc(doc(db, 'users', user.uid))
+
             if (userDoc.exists()) {
-                const { fullName } = userDoc.data();
-                const needsUpdate = fullName && user.displayName !== fullName;
+                const { fullName } = userDoc.data()
+                const needsUpdate = fullName && user.displayName !== fullName
 
                 if (needsUpdate) {
-                    await updateProfile(user, { displayName: fullName });
+                    await updateProfile(user, { displayName: fullName })
 
-                    const linkedProviders = user.providerData.map(p => p.providerId);
-                    const isLinked = linkedProviders.includes('google.com') && linkedProviders.length > 1;
+                    const linkedProviders = user.providerData.map(p => p.providerId)
+                    const isLinked = linkedProviders.includes('google.com') && linkedProviders.length > 1
 
                     if (isLinked || user.displayName === fullName) {
-                        await deleteDoc(doc(db, 'users', user.uid));
+                        await deleteDoc(doc(db, 'users', user.uid))
                     }
                 }
             }
 
             const idToken = await user.getIdToken()
-            await fetch('/api/setSession', {
+            const response = await fetch('/api/setSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: idToken }),
             })
 
+            if (!response.ok) {
+                throw new Error('Session setup failed')
+            }
+
             localStorage.setItem('welcomeToast', `Welcome, ${user.displayName || 'User'}!`)
             router.push('/')
         } catch (error: any) {
-            console.error("Google sign-in error:", error)
+            console.error('Google sign-in error:', error)
 
-            if (error.code === 'auth/account-exists-with-different-credential') {
-                console.warn("Account exists with different credential:", error.email)
-                const methods = await fetchSignInMethodsForEmail(auth, error.email)
-                console.log("Existing sign-in methods for this email:", methods)
+            if (error?.code || error?.message) {
+                toast.error("Google sign-in failed. Please try again.")
             }
         } finally {
             setLoading(false)

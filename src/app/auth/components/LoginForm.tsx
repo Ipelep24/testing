@@ -88,9 +88,11 @@ const LoginForm = ({ mode }: Props) => {
 
             switch (err.code) {
               case "auth/invalid-credential":
-                return "Hmm, that didn't work. Double-check your email and password—CAPS LOCK might be sneaking in."
+                return "Double-check your email and password—CAPS LOCK might be sneaking in."
               case "auth/too-many-requests":
                 return "Too many request. Please try again later."
+              case "auth/network-request-failed":
+                return "Check your connection and try again later."
               default:
                 return "Login failed: " + err.message
             }

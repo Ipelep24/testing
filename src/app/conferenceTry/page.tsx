@@ -39,7 +39,8 @@ const ConferenceTry: React.FC = () => {
 
   const showOnlyOverflow = maxTiles === 1
   const isOverflow = count > maxTiles
-  const visibleUsers = showOnlyOverflow ? 0 : isOverflow ? maxTiles - 1 : count
+  let visibleUsers = showOnlyOverflow ? 0 : isOverflow ? maxTiles - 1 : count
+  if (count > 1 && visibleUsers < 2) visibleUsers = 1
   const overflow = showOnlyOverflow ? count : isOverflow ? count - visibleUsers : 0
 
   const renderParticipants = () => (

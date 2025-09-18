@@ -4,7 +4,7 @@ import SidebarMenu from './SidebarMenu';
 
 export default async function Sidebar() {
   return (
-    <nav className="w-fit p-2 shadow-lg">
+    <nav className="w-fit p-2 shadow-lg bg-white">
       <div className='w-full h-1/8'>
         <div className='flex items-center justify-center'>
           <Image

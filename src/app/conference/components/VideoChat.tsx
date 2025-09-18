@@ -7,16 +7,18 @@ import AgoraRTC, {
   IMicrophoneAudioTrack,
   IAgoraRTCRemoteUser,
 } from 'agora-rtc-sdk-ng'
+import AgoraRTM from 'agora-rtm-sdk'
 
-const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!
 const CHANNEL = process.env.NEXT_PUBLIC_AGORA_CHANNEL!
-const TOKEN = process.env.NEXT_PUBLIC_AGORA_TOKEN!
 const UID = Math.floor(Math.random() * 10000)
+const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID!
+const { RTM } = AgoraRTM
 
-export default function VideoChat() {
+export default function ConferenceRTC() {
   const [client, setClient] = useState<IAgoraRTCClient | null>(null)
   const [joined, setJoined] = useState(false)
   const [remoteUsers, setRemoteUsers] = useState<IAgoraRTCRemoteUser[]>([])
+  const [rtmMembers, setRtmMembers] = useState<string[]>([])
   const [micOn, setMicOn] = useState(true)
   const [camOn, setCamOn] = useState(true)
   const [side, setSide] = useState(false)
@@ -48,6 +50,22 @@ export default function VideoChat() {
     return 15
   }
 
+  const waitForContainer = (id: string): Promise<HTMLElement> =>
+    new Promise((resolve) => {
+      const container = document.getElementById(id)
+      if (container) return resolve(container)
+
+      const observer = new MutationObserver(() => {
+        const el = document.getElementById(id)
+        if (el) {
+          observer.disconnect()
+          resolve(el)
+        }
+      })
+
+      observer.observe(document.body, { childList: true, subtree: true })
+    })
+
   useEffect(() => {
     const rtcClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
     setClient(rtcClient)
@@ -60,19 +78,35 @@ export default function VideoChat() {
         return exists ? prev : [...prev, user]
       })
 
-      let retries = 0
-      const tryPlay = () => {
-        const container = document.getElementById(`remote-${user.uid}`)
-        if (container) {
+      if (mediaType === 'video') {
+        waitForContainer(`remote-${user.uid}`).then((container) => {
           user.videoTrack?.play(container)
-        } else if (retries < 10) {
-          retries++
-          setTimeout(tryPlay, 100)
-        }
+        })
       }
 
-      if (mediaType === 'video') tryPlay()
       if (mediaType === 'audio') user.audioTrack?.play()
+    })
+
+    rtcClient.on('token-privilege-will-expire', async () => {
+      try {
+        const response = await fetch('/api/agoraRTCToken', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel: CHANNEL, uid: UID }),
+        })
+        const { token: newToken } = await response.json()
+        await rtcClient.renewToken(newToken)
+        console.log('Token renewed')
+      } catch (err) {
+        console.error('Token renewal failed:', err)
+      }
+    })
+
+    rtcClient.on('user-joined', (user) => {
+      setRemoteUsers((prev) => {
+        const exists = prev.find((u) => u.uid === user.uid)
+        return exists ? prev : [...prev, user]
+      })
     })
 
     rtcClient.on('user-unpublished', (user) => {
@@ -97,6 +131,46 @@ export default function VideoChat() {
     updateMaxTiles()
     const observer = new ResizeObserver(() => updateMaxTiles())
     if (participantRef.current) observer.observe(participantRef.current)
+
+    const initRTM = async () => {
+      const rtmClient = new RTM(APP_ID, String(UID))
+
+      const response = await fetch('/api/agoraRtmToken', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: UID }),
+      })
+      const { token } = await response.json()
+
+      await rtmClient.login({ token })
+      await rtmClient.subscribe(CHANNEL)
+
+      const channel = rtmClient.createStreamChannel(CHANNEL)
+      await channel.join()
+
+      const activeMembers = new Set<string>()
+      activeMembers.add(String(UID)) // Add self
+
+      channel.on('MemberJoined', (id) => {
+        activeMembers.add(id)
+        setRtmMembers(Array.from(activeMembers))
+      })
+
+      channel.on('MemberLeft', (id) => {
+        activeMembers.delete(id)
+        setRtmMembers(Array.from(activeMembers))
+      })
+
+      rtmClient.addEventListener("presence", (event) => {
+        console.log("Presence event:", event)
+      })
+
+      rtmClient.addEventListener("status", (event) => {
+        console.log("Connection status changed:", event.state, event.reason)
+      })
+    }
+
+    initRTM()
 
     return () => {
       rtcClient.removeAllListeners()
@@ -132,12 +206,7 @@ export default function VideoChat() {
 
         const result = await response.json()
         const emotion = result.faces?.[0]?.attributes?.emotion
-
-        if (emotion) {
-          console.log('Detected emotion:', emotion)
-        } else {
-          console.warn('No face detected')
-        }
+        if (emotion) console.log('Detected emotion:', emotion)
       } catch (err) {
         console.error('FER Error:', err)
       }
@@ -154,32 +223,34 @@ export default function VideoChat() {
   const joinChannel = async () => {
     if (!client) return
 
+    const fetchToken = async () => {
+      const response = await fetch('/api/agoraRTCToken', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: CHANNEL, uid: UID }),
+      })
+      const { token } = await response.json()
+      return token
+    }
+
     try {
-      await client.join(APP_ID, CHANNEL, TOKEN, UID)
+      const token = await fetchToken()
+      await client.join(APP_ID, CHANNEL, token, UID)
+
+      localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack()
+      localVideoTrack.current = await AgoraRTC.createCameraVideoTrack()
+
+      await client.publish([localAudioTrack.current, localVideoTrack.current])
+
+      if (localRef.current) {
+        localVideoTrack.current.play(localRef.current)
+      }
+
+      startFER()
+      setJoined(true)
     } catch (error) {
       console.error('Join failed:', error)
-      return
     }
-
-    localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack()
-    localVideoTrack.current = await AgoraRTC.createCameraVideoTrack()
-
-    localVideoTrack.current?.setEncoderConfiguration({
-      width: 640,
-      height: 360,
-      frameRate: 15,
-      bitrateMin: 300,
-      bitrateMax: 800,
-    })
-
-    await client.publish([localAudioTrack.current, localVideoTrack.current])
-
-    if (localRef.current) {
-      localVideoTrack.current.play(localRef.current)
-    }
-
-    startFER()
-    setJoined(true)
   }
 
   const leaveChannel = async () => {
@@ -218,28 +289,34 @@ export default function VideoChat() {
   }
 
   const renderParticipants = () => {
-    const tileMinWidth = share
-      ? 'min-w-[120px]'
-      : 'min-w-[max(calc((100%-32px)/5),200px)]'
-    const tileMinHeight = share ? 'min-h-[100px]' : 'min-h-[100px]'
-    const overflowMinHeight = share ? 'min-h-[90px]' : 'min-h-[100px]'
+    const allUIDs = new Set([
+      ...remoteUsers.map((u) => u.uid),
+      ...(joined ? [UID] : []),
+      ...rtmMembers.map((id) => Number(id)),
+    ])
 
-    const count = remoteUsers.length + (joined ? 1 : 0)
+    const count = allUIDs.size
     const isOverflow = count > maxTiles
     const visibleUsers = isOverflow ? maxTiles - 1 : count
-    const overflow = isOverflow ? count - (maxTiles - 1) : 0
+    const overflow = isOverflow ? count - visibleUsers : 0
 
-    const usersToRender = [...remoteUsers]
-    if (joined) {
-      usersToRender.unshift({ uid: UID, isLocal: true } as any)
-    }
+    const usersToRender = Array.from(allUIDs).map((uid) => {
+      const isLocal = uid === UID
+      const user = remoteUsers.find((u) => u.uid === uid)
+      return {
+        uid,
+        isLocal,
+        videoTrack: user?.videoTrack,
+        audioTrack: user?.audioTrack,
+      }
+    })
 
     return (
-      <div className="w-full h-full flex flex-wrap flex-1 gap-2 overflow-y-auto">
+      <div className="w-full h-full flex flex-wrap gap-2 overflow-hidden justify-center">
         {usersToRender.slice(0, visibleUsers).map((user: any) => (
           <div
             key={user.uid}
-            className={`flex-1 flex mx-auto items-center justify-center ${tileMinWidth} ${tileMinHeight} max-w-[500px] border-2 border-green-300 bg-green-100 rounded-md relative`}
+            className="flex-1 min-w-[150px] basis-[calc(100%/5-0.5rem)] min-h-[120px] flex items-center justify-center bg-green-100 rounded-md relative"
           >
             <div
               id={user.isLocal ? 'local-video' : `remote-${user.uid}`}
@@ -251,15 +328,18 @@ export default function VideoChat() {
                 Camera Off
               </div>
             )}
+            {!user.audioTrack && (
+              <div className="absolute top-2 right-2 text-xs bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                Mic Off
+              </div>
+            )}
             <div className="absolute bottom-2 left-2 text-white text-sm">
               {user.isLocal ? `Local user ${UID}` : `Remote user ${user.uid}`}
             </div>
           </div>
         ))}
         {isOverflow && (
-          <div
-            className={`flex-1 flex mx-auto items-center justify-center ${tileMinWidth} ${overflowMinHeight} max-w-[500px] border-2 border-green-300 bg-green-100 rounded-md`}
-          >
+          <div className="flex-1 min-w-[150px] basis-[calc(100%/5-0.5rem)] min-h-[120px] flex items-center justify-center bg-green-100 rounded-md font-semibold text-green-700">
             +{overflow} more
           </div>
         )}
@@ -268,35 +348,24 @@ export default function VideoChat() {
   }
 
   return (
-    <div className="border-2 border-black w-full h-screen p-1 gap-2 flex flex-col">
-      <div className="flex w-full h-full gap-2 overflow-hidden">
-        <div className="border-2 border-red-400 rounded-2xl p-2 grow flex gap-2 h-full">
+    <div className="w-full h-screen p-1 gap-2 flex flex-col">
+      <div className="flex w-full flex-grow gap-2 overflow-hidden">
+        <div className="rounded-2xl p-2 grow flex gap-2 h-full">
           {share && (
-            <div className="w-[70%] h-full border-2 border-yellow-400 rounded-md">
-              <div className="flex items-center justify-center h-full text-yellow-700 font-semibold">
-                Shared Content Area
-              </div>
+            <div className="w-[70%] min-w-[150px] h-full bg-yellow-200 rounded-md flex items-center justify-center text-xl font-bold text-yellow-700">
+              Shared Content
             </div>
           )}
 
-          {!share && !side && (
-            <div ref={participantRef} className="w-full h-full">
-              {renderParticipants()}
-            </div>
-          )}
-          {!share && side && (
-            <div ref={participantRef} className="w-[70%] h-full">
-              {renderParticipants()}
-            </div>
-          )}
-          {share && !side && (
-            <div ref={participantRef} className="w-[30%] h-full">
-              {renderParticipants()}
-            </div>
-          )}
+          <div
+            ref={participantRef}
+            className={`${share ? 'w-[30%]' : side ? 'w-[70%]' : 'w-full'} h-full`}
+          >
+            {renderParticipants()}
+          </div>
 
           {side && (
-            <div className="w-[30%] min-w-[170px] h-full border-2 border-purple-400 rounded-md bg-purple-100 p-2 overflow-y-auto">
+            <div className="w-[30%] min-w-[170px] h-full rounded-md bg-purple-100 p-2 overflow-y-auto">
               <div className="text-lg font-semibold mb-2">Sidebar Panel</div>
               {Array.from({ length: 5 }, (_, i) => (
                 <div
@@ -311,7 +380,8 @@ export default function VideoChat() {
         </div>
       </div>
 
-      <div className="border-2 border-blue-400 h-[15%] rounded-xl flex items-center justify-between px-4 bg-blue-100">
+      {/* Footer */}
+      <div className="h-[15%] rounded-xl flex items-center justify-between px-4 bg-blue-100">
         <div className="space-x-2">
           {!joined ? (
             <button

@@ -199,7 +199,7 @@ const RecordsLayout = () => {
             onSelect={setSelectedSession}
           />
         ) : (
-          <div className="w-1/4 h-full border shadow-md rounded-lg flex items-center justify-center text-gray-500">
+          <div className="w-1/4 h-full border shadow-md rounded-lg flex items-center justify-center text-gray-500 bg-white">
             <p className="text-md text-center px-4">
               No sessions available
             </p>
@@ -208,10 +208,10 @@ const RecordsLayout = () => {
 
 
         <div className='w-full h-full flex flex-col gap-4'>
-          <div className='border w-full h-1/2 shadow-md rounded-lg'>
+          <div className='border w-full h-1/2 shadow-md rounded-lg bg-white'>
             {/* Chart or analytics here */}
           </div>
-          <div className="w-full h-1/2 shadow-md rounded-lg border overflow-y-auto">
+          <div className="w-full h-1/2 shadow-md rounded-lg border overflow-y-auto bg-white">
             {sortedRows.length === 0 ? (
               <div className="flex items-center justify-center h-full text-gray-500">
                 <p className='text-md md:text-xl'>Select a session to view records</p>
