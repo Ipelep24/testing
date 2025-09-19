@@ -46,14 +46,14 @@ export default function AuthLayout({ mode, setMode }: Props) {
             }
 
             const idToken = await user.getIdToken()
-            const response = await fetch('/api/setSession', {
+            const response = await fetch('/api/verifySession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: idToken }),
             })
 
             if (!response.ok) {
-                throw new Error('Session setup failed')
+                throw new Error('Session verification failed')
             }
 
             localStorage.setItem('welcomeToast', `Welcome, ${user.displayName || 'User'}!`)
