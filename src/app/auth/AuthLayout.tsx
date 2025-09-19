@@ -4,7 +4,7 @@ import Image from 'next/image'
 import SignupForm from './components/SignupForm'
 import LoginForm from './components/LoginForm'
 import { useRouter } from 'next/navigation'
-import { fetchSignInMethodsForEmail, GoogleAuthProvider, signInWithPopup, updateProfile } from 'firebase/auth'
+import { GoogleAuthProvider, signInWithPopup, updateProfile } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase/firebase'
 import { useState } from 'react'
 import { deleteDoc, doc, getDoc } from 'firebase/firestore'
@@ -58,10 +58,8 @@ export default function AuthLayout({ mode, setMode }: Props) {
 
             localStorage.setItem('welcomeToast', `Welcome, ${user.displayName || 'User'}!`)
             router.push('/')
-        } catch (error: any) {
-            console.error('Google sign-in error:', error)
-
-            if (error?.code || error?.message) {
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && ('code' in error || 'message' in error)) {
                 toast.error("Google sign-in failed. Please try again.")
             }
         } finally {

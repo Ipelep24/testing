@@ -22,10 +22,17 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return NextResponse.json(
+        { error: 'FER proxy failed', details: err.message },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'FER proxy failed', details: err.message },
+      { error: 'FER proxy failed', details: 'Unknown error' },
       { status: 500 }
-    );
+    )
   }
 }

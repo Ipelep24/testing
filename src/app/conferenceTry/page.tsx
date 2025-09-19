@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 const ConferenceTry: React.FC = () => {
   const count = 100
@@ -13,7 +13,7 @@ const ConferenceTry: React.FC = () => {
   const estimatedTileWidth = 150
   const gap = 8 // Tailwind gap-2 = 0.5rem = 8px
 
-  const calculateMaxTiles = () => {
+  const calculateMaxTiles = useCallback(() => {
     const width = participantRef.current?.offsetWidth ?? window.innerWidth
     const height = participantRef.current?.offsetHeight ?? window.innerHeight
 
@@ -24,9 +24,10 @@ const ConferenceTry: React.FC = () => {
     const maxRows = Math.floor((height + gap) / (tileHeight + gap))
     const maxFit = maxCols * maxRows
 
-    const cappedFit = Math.min(maxFit, 15) // Cap only if screen allows
+    const cappedFit = Math.min(maxFit, 15)
     setMaxTiles(Math.max(1, cappedFit))
-  }
+  }, [aspectRatio, estimatedTileWidth, gap])
+
 
   useEffect(() => {
     calculateMaxTiles()
@@ -35,7 +36,7 @@ const ConferenceTry: React.FC = () => {
     if (participantRef.current) observer.observe(participantRef.current)
 
     return () => observer.disconnect()
-  }, [share, side])
+  }, [share, side, calculateMaxTiles])
 
   const showOnlyOverflow = maxTiles === 1
   const isOverflow = count > maxTiles
