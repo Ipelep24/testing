@@ -1,15 +1,11 @@
-// app/api/agoraToken/route.ts
-import { RtcTokenBuilder, RtcRole } from 'agora-token'
+import { RtmTokenBuilder, RtmRole } from 'agora-access-token'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { channel, uid } = body
-
-    if (!channel || uid === undefined) {
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
-    }
+    const { uid } = body
+    console.log('Received UID:', uid)
 
     const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID
     const useSecondary = process.env.USE_SECONDARY_CERT === 'true'
@@ -17,31 +13,29 @@ export async function POST(request: Request) {
       ? process.env.AGORA_SECONDARY_CERTIFICATE
       : process.env.AGORA_PRIMARY_CERTIFICATE
 
+    console.log('App ID:', appId)
+    console.log('App Certificate:', appCertificate ? '[REDACTED]' : 'Missing')
 
-    if (!appId || !appCertificate) {
-      return NextResponse.json({ error: 'Missing Agora credentials' }, { status: 500 })
+    if (!uid || !appId || !appCertificate) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const expirationTimeInSeconds = 3600
     const currentTimestamp = Math.floor(Date.now() / 1000)
     const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds
 
-    const token = RtcTokenBuilder.buildTokenWithUid(
+    const token = RtmTokenBuilder.buildToken(
       appId,
       appCertificate,
-      channel,
-      uid,
-      RtcRole.PUBLISHER,
-      privilegeExpiredTs,
+      String(uid), // ✅ RTM requires string UID
+      RtmRole.Rtm_User,
       privilegeExpiredTs
     )
 
-    console.log('Received UID: ', uid)
-    console.log('AppID: ', appId)
-    console.log('Generated RTC Token: ', token)
+    console.log('Generated RTM token:', token)
     return NextResponse.json({ token })
   } catch (err) {
-    console.error('Token route error:', err)
+    console.error('RTM Token route error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

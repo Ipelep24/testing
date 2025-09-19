@@ -313,7 +313,7 @@ export default function ConferenceRTC() {
 
     return (
       <div className="w-full h-full flex flex-wrap gap-2 overflow-hidden justify-center">
-        {usersToRender.slice(0, visibleUsers).map((user) => (
+        {usersToRender.slice(0, visibleUsers).map((user: any) => (
           <div
             key={user.uid}
             className="flex-1 min-w-[150px] basis-[calc(100%/5-0.5rem)] min-h-[120px] flex items-center justify-center bg-green-100 rounded-md relative"

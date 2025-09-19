@@ -64,12 +64,15 @@ const ConferenceTry: React.FC = () => {
   return (
     <div className="w-full h-screen p-1 gap-2 flex flex-col">
       <div className="flex w-full flex-grow gap-2 overflow-hidden">
-        <div className="rounded-2xl p-2 grow flex gap-2 h-full">
-          {share && (
-            <div className="w-[70%] min-w-[150px] h-full bg-yellow-200 rounded-md flex items-center justify-center text-xl font-bold text-yellow-700">
-              Shared Content
-            </div>
-          )}
+        <div className="rounded-2xl p-2 grow flex gap-2">
+
+          {/* share */}
+          <div
+            className={`transition-all duration-500 ease-in-out ${share ? 'opacity-100  w-[70%] min-w-[150px]' : 'opacity-0 w-0 pointer-events-none'
+              } h-full bg-yellow-200 rounded-md flex items-center justify-center text-xl font-bold text-yellow-700`}
+          >
+            Shared Content
+          </div>
 
           <div
             ref={participantRef}
@@ -78,24 +81,26 @@ const ConferenceTry: React.FC = () => {
             {renderParticipants()}
           </div>
 
-          {side && (
-            <div className="w-[30%] min-w-[170px] h-full rounded-md bg-purple-100 p-2 overflow-y-auto">
-              <div className="text-lg font-semibold mb-2">Sidebar Panel</div>
-              {Array.from({ length: 5 }, (_, i) => (
-                <div
-                  key={i}
-                  className="p-2 border border-purple-300 rounded-md bg-white shadow-sm mb-2"
-                >
-                  Chat message {i + 1}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* sidebar */}
+          <div
+            className={`h-full rounded-md bg-purple-100 overflow-y-auto transition-all duration-500 ease-in-out ${side ? 'opacity-100 translate-x-0 w-[30%] min-w-[170px] pointer-events-auto p-2' : 'opacity-0 translate-x-full w-0 pointer-events-none'
+              }`}
+          >
+            <div className="text-lg font-semibold mb-2">Sidebar Panel</div>
+            {Array.from({ length: 5 }, (_, i) => (
+              <div
+                key={i}
+                className="p-2 border border-purple-300 rounded-md bg-white shadow-sm mb-2"
+              >
+                Chat message {i + 1}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="h-[15%] rounded-xl flex items-center justify-between px-4 bg-blue-100">
+      <div className="rounded-xl flex items-center justify-between px-4 py-3 bg-blue-100">
         <div className="text-lg font-semibold">Footer / Controls</div>
         <div className="flex gap-4">
           <button
