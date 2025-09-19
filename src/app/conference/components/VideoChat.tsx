@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import AgoraRTC, {
   IAgoraRTCClient,
   ICameraVideoTrack,
@@ -31,24 +31,25 @@ export default function ConferenceRTC() {
   const ferInterval = useRef<NodeJS.Timeout | null>(null)
   const participantRef = useRef<HTMLDivElement>(null)
 
-  const getResponsiveMaxTiles = (width: number) => {
-    if (!share && !side) {
-      if (width < 768) return 8
-      if (width < 1024) return 12
-      return 15
-    }
-    if (share && !side) {
-      if (width < 300) return 4
-      if (width < 500) return 8
-      return 12
-    }
-    if (!share && side) {
-      if (width < 300) return 4
-      if (width < 768) return 8
-      return 12
-    }
+  const getResponsiveMaxTiles = useCallback((width: number) => {
+  if (!share && !side) {
+    if (width < 768) return 8
+    if (width < 1024) return 12
     return 15
   }
+  if (share && !side) {
+    if (width < 300) return 4
+    if (width < 500) return 8
+    return 12
+  }
+  if (!share && side) {
+    if (width < 300) return 4
+    if (width < 768) return 8
+    return 12
+  }
+  return 15
+}, [share, side])
+
 
   const waitForContainer = (id: string): Promise<HTMLElement> =>
     new Promise((resolve) => {
@@ -177,7 +178,7 @@ export default function ConferenceRTC() {
       stopFER()
       observer.disconnect()
     }
-  }, [share, side])
+  }, [share, side, getResponsiveMaxTiles])
 
   const startFER = () => {
     const canvas = document.createElement('canvas')
@@ -313,7 +314,7 @@ export default function ConferenceRTC() {
 
     return (
       <div className="w-full h-full flex flex-wrap gap-2 overflow-hidden justify-center">
-        {usersToRender.slice(0, visibleUsers).map((user: any) => (
+        {usersToRender.slice(0, visibleUsers).map((user) => (
           <div
             key={user.uid}
             className="flex-1 min-w-[150px] basis-[calc(100%/5-0.5rem)] min-h-[120px] flex items-center justify-center bg-green-100 rounded-md relative"
@@ -351,11 +352,13 @@ export default function ConferenceRTC() {
     <div className="w-full h-screen p-1 gap-2 flex flex-col">
       <div className="flex w-full flex-grow gap-2 overflow-hidden">
         <div className="rounded-2xl p-2 grow flex gap-2 h-full">
-          {share && (
-            <div className="w-[70%] min-w-[150px] h-full bg-yellow-200 rounded-md flex items-center justify-center text-xl font-bold text-yellow-700">
-              Shared Content
-            </div>
-          )}
+          {/* share */}
+          <div
+            className={`transition-all duration-500 ease-in-out ${share ? 'opacity-100  w-[70%] min-w-[150px]' : 'opacity-0 w-0 pointer-events-none'
+              } h-full bg-yellow-200 rounded-md flex items-center justify-center text-xl font-bold text-yellow-700`}
+          >
+            Shared Content
+          </div>
 
           <div
             ref={participantRef}
@@ -364,19 +367,21 @@ export default function ConferenceRTC() {
             {renderParticipants()}
           </div>
 
-          {side && (
-            <div className="w-[30%] min-w-[170px] h-full rounded-md bg-purple-100 p-2 overflow-y-auto">
-              <div className="text-lg font-semibold mb-2">Sidebar Panel</div>
-              {Array.from({ length: 5 }, (_, i) => (
-                <div
-                  key={i}
-                  className="p-2 border border-purple-300 rounded-md bg-white shadow-sm mb-2"
-                >
-                  Chat message {i + 1}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* sidebar */}
+          <div
+            className={`h-full rounded-md bg-purple-100 overflow-y-auto transition-all duration-500 ease-in-out ${side ? 'opacity-100 translate-x-0 w-[30%] min-w-[170px] pointer-events-auto p-2' : 'opacity-0 translate-x-full w-0 pointer-events-none'
+              }`}
+          >
+            <div className="text-lg font-semibold mb-2">Sidebar Panel</div>
+            {Array.from({ length: 5 }, (_, i) => (
+              <div
+                key={i}
+                className="p-2 border border-purple-300 rounded-md bg-white shadow-sm mb-2"
+              >
+                Chat message {i + 1}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

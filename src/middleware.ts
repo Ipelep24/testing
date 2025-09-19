@@ -32,11 +32,12 @@ export async function middleware(req: NextRequest) {
         const { payload } = await jwtVerify(cookie!, new TextEncoder().encode(process.env.COOKIE_SIGNATURE_KEY_CURRENT!))
         const firebaseToken = payload.sub as string
 
-        // ✅ Verify the Firebase token
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const _decodedToken = await getAuth(app).verifyIdToken(firebaseToken)
 
         // Optionally attach user info to request here
         return NextResponse.next()
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_err) {
         if (isProtected) {
             return NextResponse.redirect(new URL('/auth', req.url))

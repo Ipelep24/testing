@@ -1,4 +1,4 @@
-import { RtmTokenBuilder, RtmRole } from 'agora-access-token'
+import { RtmTokenBuilder } from 'agora-token'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -28,7 +28,6 @@ export async function POST(request: Request) {
       appId,
       appCertificate,
       String(uid), // ✅ RTM requires string UID
-      RtmRole.Rtm_User,
       privilegeExpiredTs
     )
 
