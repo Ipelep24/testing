@@ -57,11 +57,15 @@ const LoginForm = ({ mode }: Props) => {
           }
 
           const idToken = await user.getIdToken()
-          await fetch('/api/setSession', {
+          const response = await fetch('/api/verifySession', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: idToken }),
           })
+
+          if (!response.ok) {
+            throw new Error('Session verification failed')
+          }
 
           const welcomeMessage = `Welcome, ${user.displayName || 'User'}!`
 
